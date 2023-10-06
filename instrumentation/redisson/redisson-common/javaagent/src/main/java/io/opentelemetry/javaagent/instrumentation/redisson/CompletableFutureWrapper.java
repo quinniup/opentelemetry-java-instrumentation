@@ -5,11 +5,18 @@
 
 package io.opentelemetry.javaagent.instrumentation.redisson;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.WARNING;
 
 public class CompletableFutureWrapper<T> extends CompletableFuture<T> implements PromiseWrapper<T> {
+  private static final Logger logger = Logger.getLogger(CompletableFutureWrapper.class.getName());
+
   private static final Class<?> batchPromiseClass = getBatchPromiseClass();
   private volatile EndOperationListener<T> endOperationListener;
 
@@ -20,6 +27,12 @@ public class CompletableFutureWrapper<T> extends CompletableFuture<T> implements
           EndOperationListener<T> endOperationListener = this.endOperationListener;
           if (endOperationListener != null) {
             endOperationListener.accept(result, error);
+          }
+          ObjectMapper om = new ObjectMapper();
+          try {
+            logger.log(WARNING, "debug redisson :: {0}", om.writeValueAsString(result));
+          } catch (JsonProcessingException e) {
+
           }
           try (Scope ignored = context.makeCurrent()) {
             if (error != null) {
